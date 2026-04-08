@@ -2,66 +2,150 @@
 <head>
   <meta charset="UTF-8">
   <title>Dodge Blocks Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
       overflow: hidden;
       background: #111;
       font-family: Arial, sans-serif;
       color: white;
-      text-align: center;
-    }
-    canvas {
-      display: block;
-      margin: 0 auto;
-      background: #1e1e1e;
+      height: 100%;
     }
     #score {
-      position: absolute;
-      top: 10px;
+      position: fixed;
+      top: 12px;
       left: 50%;
       transform: translateX(-50%);
       font-size: 20px;
+      z-index: 2;
+    }
+    canvas {
+      display: block;
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #1e1e1e;
+      outline: none;
+      touch-action: none;
+    }
+    /* simple touch buttons (optional) */
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+      z-index: 2;
+    }
+    .btn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      user-select: none;
+      -webkit-user-select: none;
     }
   </style>
 </head>
 <body>
   <div id="score">Score: 0</div>
-  <canvas id="gameCanvas" width="400" height="600"></canvas>  <script>
+  <canvas id="gameCanvas" tabindex="1"></canvas>  <div class="controls">
+    <div class="btn" id="leftBtn">⬅️</div>
+    <div class="btn" id="rightBtn">➡️</div>
+  </div>  <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    canvas.focus();
+
     let player = {
-      x: 180,
-      y: 550,
-      width: 40,
-      height: 40,
-      speed: 6
+      x: 0,
+      y: 0,
+      width: 50,
+      height: 50,
+      speed: 14 // lebih cepat biar responsif & ga bikin emosi // lebih cepat biar ga ngeselin
     };
 
+    function resetPlayer() {
+      player.x = canvas.width / 2 - player.width / 2;
+      player.y = canvas.height - 80;
+    }
+    resetPlayer();
+
+    let keys = { left: false, right: false };
     let blocks = [];
     let score = 0;
     let gameOver = false;
 
+    // keyboard
     document.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowLeft") player.x -= player.speed;
-      if (e.key === "ArrowRight") player.x += player.speed;
+      if (e.key === "ArrowLeft") keys.left = true;
+      if (e.key === "ArrowRight") keys.right = true;
+    });
+    document.addEventListener("keyup", (e) => {
+      if (e.key === "ArrowLeft") keys.left = false;
+      if (e.key === "ArrowRight") keys.right = false;
     });
 
+    // touch controls
+    const leftBtn = document.getElementById("leftBtn");
+    const rightBtn = document.getElementById("rightBtn");
+
+    function bindHold(btn, dir) {
+      const down = () => keys[dir] = true;
+      const up = () => keys[dir] = false;
+      btn.addEventListener('touchstart', down);
+      btn.addEventListener('touchend', up);
+      btn.addEventListener('touchcancel', up);
+      btn.addEventListener('mousedown', down);
+      btn.addEventListener('mouseup', up);
+      btn.addEventListener('mouseleave', up);
+    }
+    bindHold(leftBtn, 'left');
+    bindHold(rightBtn, 'right');
+
     function spawnBlock() {
+      const size = 40 + Math.random() * 20;
       blocks.push({
-        x: Math.random() * 360,
-        y: -40,
-        width: 40,
-        height: 40,
-        speed: 3 + Math.random() * 3
+        x: Math.random() * (canvas.width - size),
+        y: -size,
+        width: size,
+        height: size,
+        speed: 4 + Math.random() * 5
       });
     }
 
     function update() {
       if (gameOver) return;
 
-      if (Math.random() < 0.03) spawnBlock();
+      // movement
+      if (keys.left) player.x -= player.speed;
+      if (keys.right) player.x += player.speed;
+
+      // bounds
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width)
+        player.x = canvas.width - player.width;
+
+      // spawn rate lebih cepat dikit
+      // difficulty scaling
+      const spawnRate = Math.min(0.08, 0.04 + score * 0.0005);
+      if (Math.random() < spawnRate) spawnBlock();
 
       blocks.forEach((block, index) => {
         block.y += block.speed;
@@ -78,7 +162,7 @@
           location.reload();
         }
 
-        // remove block
+        // remove + score
         if (block.y > canvas.height) {
           blocks.splice(index, 1);
           score++;
@@ -109,4 +193,4 @@
 
     gameLoop();
   </script></body>
-  </html>
+</html>
