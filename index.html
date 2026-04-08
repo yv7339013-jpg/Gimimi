@@ -1,0 +1,112 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dodge Blocks Game</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #111;
+      font-family: Arial, sans-serif;
+      color: white;
+      text-align: center;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #1e1e1e;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="score">Score: 0</div>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let player = {
+      x: 180,
+      y: 550,
+      width: 40,
+      height: 40,
+      speed: 6
+    };
+
+    let blocks = [];
+    let score = 0;
+    let gameOver = false;
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") player.x -= player.speed;
+      if (e.key === "ArrowRight") player.x += player.speed;
+    });
+
+    function spawnBlock() {
+      blocks.push({
+        x: Math.random() * 360,
+        y: -40,
+        width: 40,
+        height: 40,
+        speed: 3 + Math.random() * 3
+      });
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      if (Math.random() < 0.03) spawnBlock();
+
+      blocks.forEach((block, index) => {
+        block.y += block.speed;
+
+        // collision
+        if (
+          player.x < block.x + block.width &&
+          player.x + player.width > block.x &&
+          player.y < block.y + block.height &&
+          player.y + player.height > block.y
+        ) {
+          gameOver = true;
+          alert("Game Over! Score: " + score);
+          location.reload();
+        }
+
+        // remove block
+        if (block.y > canvas.height) {
+          blocks.splice(index, 1);
+          score++;
+          document.getElementById("score").innerText = "Score: " + score;
+        }
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // player
+      ctx.fillStyle = "#00ffcc";
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+
+      // blocks
+      ctx.fillStyle = "#ff4d4d";
+      blocks.forEach(block => {
+        ctx.fillRect(block.x, block.y, block.width, block.height);
+      });
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script></body>
+  </html>
