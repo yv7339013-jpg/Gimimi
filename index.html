@@ -1,196 +1,120 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Dodge Blocks Game</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background: #111;
-      font-family: Arial, sans-serif;
-      color: white;
-      height: 100%;
-    }
-    #score {
-      position: fixed;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 20px;
-      z-index: 2;
-    }
-    canvas {
-      display: block;
-      position: fixed;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      background: #1e1e1e;
-      outline: none;
-      touch-action: none;
-    }
-    /* simple touch buttons (optional) */
-    .controls {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 20px;
-      z-index: 2;
-    }
-    .btn {
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Snake Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+        }
+        canvas {
+            border: 5px solid #00ffcc;
+            box-shadow: 0 0 20px #00ffcc;
+            background-color: #000;
+        }
+        h1 { margin-bottom: 10px; color: #00ffcc; }
+        .score { font-size: 24px; margin-bottom: 10px; }
+    </style>
 </head>
 <body>
-  <div id="score">Score: 0</div>
-  <canvas id="gameCanvas" tabindex="1"></canvas>  <div class="controls">
-    <div class="btn" id="leftBtn">⬅️</div>
-    <div class="btn" id="rightBtn">➡️</div>
-  </div>  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
 
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
+    <h1>NEON SNAKE</h1>
+    <div class="score">Skor: <span id="scoreVal">0</span></div>
+    <canvas id="snakeGame" width="400" height="400"></canvas>
 
-    canvas.focus();
+    <script>
+        const canvas = document.getElementById("snakeGame");
+        const ctx = canvas.getContext("2d");
+        const scoreElement = document.getElementById("scoreVal");
 
-    let player = {
-      x: 0,
-      y: 0,
-      width: 50,
-      height: 50,
-      speed: 14 // lebih cepat biar responsif & ga bikin emosi // lebih cepat biar ga ngeselin
-    };
+        const box = 20; // Ukuran satu kotak grid
+        let snake = [{ x: 10 * box, y: 10 * box }]; // Posisi awal ular
+        let food = {
+            x: Math.floor(Math.random() * 19 + 1) * box,
+            y: Math.floor(Math.random() * 19 + 1) * box
+        };
+        let score = 0;
+        let d; // Arah
 
-    function resetPlayer() {
-      player.x = canvas.width / 2 - player.width / 2;
-      player.y = canvas.height - 80;
-    }
-    resetPlayer();
+        // Mendengarkan input keyboard
+        document.addEventListener("keydown", direction);
 
-    let keys = { left: false, right: false };
-    let blocks = [];
-    let score = 0;
-    let gameOver = false;
-
-    // keyboard
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowLeft") keys.left = true;
-      if (e.key === "ArrowRight") keys.right = true;
-    });
-    document.addEventListener("keyup", (e) => {
-      if (e.key === "ArrowLeft") keys.left = false;
-      if (e.key === "ArrowRight") keys.right = false;
-    });
-
-    // touch controls
-    const leftBtn = document.getElementById("leftBtn");
-    const rightBtn = document.getElementById("rightBtn");
-
-    function bindHold(btn, dir) {
-      const down = () => keys[dir] = true;
-      const up = () => keys[dir] = false;
-      btn.addEventListener('touchstart', down);
-      btn.addEventListener('touchend', up);
-      btn.addEventListener('touchcancel', up);
-      btn.addEventListener('mousedown', down);
-      btn.addEventListener('mouseup', up);
-      btn.addEventListener('mouseleave', up);
-    }
-    bindHold(leftBtn, 'left');
-    bindHold(rightBtn, 'right');
-
-    function spawnBlock() {
-      const size = 40 + Math.random() * 20;
-      blocks.push({
-        x: Math.random() * (canvas.width - size),
-        y: -size,
-        width: size,
-        height: size,
-        speed: 4 + Math.random() * 5
-      });
-    }
-
-    function update() {
-      if (gameOver) return;
-
-      // movement
-      if (keys.left) player.x -= player.speed;
-      if (keys.right) player.x += player.speed;
-
-      // bounds
-      if (player.x < 0) player.x = 0;
-      if (player.x + player.width > canvas.width)
-        player.x = canvas.width - player.width;
-
-      // spawn rate lebih cepat dikit
-      // difficulty scaling
-      const spawnRate = Math.min(0.08, 0.04 + score * 0.0005);
-      if (Math.random() < spawnRate) spawnBlock();
-
-      blocks.forEach((block, index) => {
-        block.y += block.speed;
-
-        // collision
-        if (
-          player.x < block.x + block.width &&
-          player.x + player.width > block.x &&
-          player.y < block.y + block.height &&
-          player.y + player.height > block.y
-        ) {
-          gameOver = true;
-          alert("Game Over! Score: " + score);
-          location.reload();
+        function direction(event) {
+            if(event.keyCode == 37 && d != "RIGHT") d = "LEFT";
+            else if(event.keyCode == 38 && d != "DOWN") d = "UP";
+            else if(event.keyCode == 39 && d != "LEFT") d = "RIGHT";
+            else if(event.keyCode == 40 && d != "UP") d = "DOWN";
         }
 
-        // remove + score
-        if (block.y > canvas.height) {
-          blocks.splice(index, 1);
-          score++;
-          document.getElementById("score").innerText = "Score: " + score;
+        function draw() {
+            // Bersihkan Canvas
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Gambar Ular
+            for(let i = 0; i < snake.length; i++) {
+                ctx.fillStyle = (i == 0) ? "#00ffcc" : "#008866";
+                ctx.fillRect(snake[i].x, snake[i].y, box, box);
+                ctx.strokeStyle = "black";
+                ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+            }
+
+            // Gambar Makanan
+            ctx.fillStyle = "#ff0055";
+            ctx.fillRect(food.x, food.y, box, box);
+
+            // Posisi Kepala Lama
+            let snakeX = snake[0].x;
+            let snakeY = snake[0].y;
+
+            // Arah Gerak
+            if( d == "LEFT") snakeX -= box;
+            if( d == "UP") snakeY -= box;
+            if( d == "RIGHT") snakeX += box;
+            if( d == "DOWN") snakeY += box;
+
+            // Logika Makan
+            if(snakeX == food.x && snakeY == food.y) {
+                score++;
+                scoreElement.innerHTML = score;
+                food = {
+                    x: Math.floor(Math.random() * 19 + 1) * box,
+                    y: Math.floor(Math.random() * 19 + 1) * box
+                };
+            } else {
+                snake.pop(); // Hapus ekor jika tidak makan
+            }
+
+            // Kepala Baru
+            let newHead = { x: snakeX, y: snakeY };
+
+            // Game Over (Tabrak dinding atau diri sendiri)
+            if(snakeX < 0 || snakeY < 0 || snakeX >= canvas.width || snakeY >= canvas.height || collision(newHead, snake)) {
+                clearInterval(game);
+                alert("Game Over! Skor kamu: " + score);
+                location.reload(); // Restart game
+            }
+
+            snake.unshift(newHead);
         }
-      });
-    }
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+        function collision(head, array) {
+            for(let i = 0; i < array.length; i++) {
+                if(head.x == array[i].x && head.y == array[i].y) return true;
+            }
+            return false;
+        }
 
-      // player
-      ctx.fillStyle = "#00ffcc";
-      ctx.fillRect(player.x, player.y, player.width, player.height);
-
-      // blocks
-      ctx.fillStyle = "#ff4d4d";
-      blocks.forEach(block => {
-        ctx.fillRect(block.x, block.y, block.width, block.height);
-      });
-    }
-
-    function gameLoop() {
-      update();
-      draw();
-      requestAnimationFrame(gameLoop);
-    }
-
-    gameLoop();
-  </script></body>
+        let game = setInterval(draw, 100); // Jalankan fungsi draw setiap 100ms
+    </script>
+</body>
 </html>
