@@ -1,260 +1,363 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Pro Canvas - Advanced Layer System</title>
+<!DOCTYPE html>  <html lang="id">    <head>      <meta charset="UTF-8">      
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">      
+<title>Pro Canvas - Advanced Layer System</title>      
+<style>      
+    :root { --bg: #1a1a1a; --panel: #2d2d2d; --accent: #00a2ff; --text: #eee; --danger: #dc3545; --warning: #ffc107; }      
+    * { box-sizing: border-box; touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }      
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background: var(--bg); color: var(--text); overflow: hidden; display: flex; height: 100vh; }  /* TOOLBAR KIRI */      
+#toolbar { width: 75px; background: var(--panel); display: flex; flex-direction: column; align-items: center; padding: 10px 5px; gap: 8px; border-right: 1px solid #444; z-index: 100; flex-shrink: 0; }      
+.history-tools { display: flex; gap: 4px; width: 65px; }      
+.btn-hist { flex: 1; height: 35px; background: #444; border: 1px solid #555; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; }    #color-palette { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: 65px; }
 
-<style>
-:root { --bg: #1a1a1a; --panel: #2d2d2d; --accent: #00a2ff; --text: #eee; }
+.color-circle { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #555; cursor: pointer; }
+.color-circle.active-color { border-color: white; box-shadow: 0 0 5px white; }
 
-* { box-sizing: border-box; touch-action: none; user-select: none; }
+.tool { width: 65px; height: 50px; cursor: pointer; background: #3d3d3d; border: 1px solid #555; border-radius: 10px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; transition: 0.2s; }
+.tool.active { border: 2px solid var(--accent); background: #4a4a4a; box-shadow: 0 0 10px var(--accent); }
 
-body {
-  margin: 0;
-  font-family: Arial;
-  background: var(--bg);
-  color: var(--text);
-  height: 100vh;
-  display: flex;
-}
+/* CANVAS AREA */
+#canvas-wrapper { flex-grow: 1; position: relative; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; }
+#canvas-container { position: relative; width: 100%; height: 100%; transform-origin: center; }
+canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-/* TOOLBAR */
-#toolbar {
-  width: 75px;
-  background: var(--panel);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px 5px;
-  gap: 8px;
-}
+/* LAYER PANEL (Kiri Atas) */
+#layer-panel { position: fixed; left: 85px; top: 10px; bottom: 80px; width: 280px; background: var(--panel); border-radius: 15px; display: none; flex-direction: column; border: 1px solid #444; box-shadow: 0 15px 40px rgba(0,0,0,0.8); z-index: 200; }
+.panel-header { padding: 12px 15px; background: #383838; font-weight: bold; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center; }
+#layer-list { overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
 
-/* CANVAS */
-#canvas-wrapper {
-  flex: 1;
-  position: relative;
-  background: white; /* FIX: putih */
-  overflow: hidden;
-}
+.layer-item { background: #3d3d3d; padding: 8px; border-radius: 8px; display: flex; flex-direction: column; gap: 5px; border: 2px solid transparent; cursor: pointer; }
+.layer-item.selected { border-color: var(--accent); background: #4a4a4a; }
+.layer-item.dragging { opacity: 0.5; border: 2px dashed var(--accent); }
+.layer-row-top { display: flex; align-items: center; gap: 8px; }
+.layer-name { font-size: 11px; font-weight: bold; flex-grow: 1; cursor: text; background: transparent; border: none; color: white; }
+.layer-controls { display: flex; gap: 4px; align-items: center; }
+.layer-meta { display: flex; align-items: center; gap: 10px; padding: 0 5px; }
+.layer-meta span { font-size: 9px; color: #aaa; }
+.layer-meta select { background: #222; color: white; border: none; font-size: 10px; border-radius: 4px; }
+.layer-meta input[type="range"] { width: 60px; height: 4px; }
 
-#canvas-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
+/* FLOATING PANELS (Kanan Bawah) */
+.floating-panel { position: fixed; right: 20px; bottom: 90px; width: 220px; background: var(--panel); border: 1px solid #555; border-radius: 12px; padding: 15px; display: none; flex-direction: column; gap: 10px; z-index: 205; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.floating-panel h4 { margin: 0 0 5px 0; font-size: 12px; color: var(--accent); }
+.setting-row { display: flex; flex-direction: column; gap: 4px; }
+.setting-row label { font-size: 10px; display: flex; justify-content: space-between; }
+input[type="range"] { width: 100%; cursor: pointer; }
 
-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
+/* UI BUTTONS KANAN BAWAH */
+.toggle-layers-btn { position: fixed; right: 20px; bottom: 20px; padding: 0 20px; height: 50px; background: var(--accent); color: white; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; z-index: 101; }
 
-/* LAYERS */
-#layer-panel {
-  position: fixed;
-  left: 85px;
-  top: 10px;
-  width: 280px;
-  bottom: 80px;
-  background: var(--panel);
-  display: none;
-  flex-direction: column;
-  border-radius: 10px;
-}
+.handle { cursor: grab; color: #888; padding-right: 5px; font-size: 18px; }
+.btn-ui { background: #555; border: none; color: white; border-radius: 4px; padding: 4px 6px; cursor: pointer; font-size: 12px; }
+.btn-locked { background: var(--warning) !important; color: black !important; }
 
-.layer-item {
-  background: #3d3d3d;
-  padding: 8px;
-  margin: 5px;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-}
+</style>  </head>
 
-.layer-row-top {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
+<body>  <div id="toolbar">      
+    <div class="history-tools">      
+        <button class="btn-hist" onclick="undo()">&lt;</button>      
+        <button class="btn-hist" onclick="redo()">&gt;</button>      
+    </div>      
+    <hr style="width: 100%; border-color: #444; margin: 2px 0;">      
+    <div id="color-palette"></div>      
+    <button class="tool" onclick="toggleFloating('color-panel')">🎨<br>Pick</button>      
+    <hr style="width: 100%; border-color: #444; margin: 2px 0;">      
+    <div class="tool active" data-tool="brush" data-size="2"><span>🖊️</span>Thin</div>      
+    <div class="tool" data-tool="eraser" data-size="40"><span>🧽</span>Eraser</div>      
+    <button class="tool" onclick="toggleFloating('brush-panel')">⚙️<br>Settings</button>      
+</div>    <div id="canvas-wrapper">      
+    <div id="canvas-container">      
+    </div>      
+</div>    <button class="toggle-layers-btn" onclick="toggleLayerPanel()">📑 LAYERS</button>  <div id="brush-panel" class="floating-panel">      
+    <h4>Brush Settings</h4>      
+    <div class="setting-row">      
+        <label>Brush Size <span id="val-brush-size">2</span></label>      
+        <input type="range" min="1" max="200" value="2" oninput="updateBrushSize(this.value)">      
+    </div>      
+    <div class="setting-row">      
+        <label>Opacity <span id="val-brush-op">100%</span></label>      
+        <input type="range" min="1" max="100" value="100" oninput="updateBrushOpacity(this.value)">      
+    </div>      
+    <div class="setting-row">      
+        <label>Eraser Size <span id="val-eraser-size">40</span></label>      
+        <input type="range" min="1" max="300" value="40" oninput="updateEraserSize(this.value)">      
+    </div>      
+</div>    <div id="color-panel" class="floating-panel">      
+    <h4>Color Picker</h4>      
+    <input type="color" id="main-color-input" style="width:100%; height:80px; border:none; background:none; cursor:pointer;" oninput="updateColor(this.value)">      
+    <div id="color-hex" style="text-align:center; font-family:monospace; margin-top:5px;">#000000</div>      
+</div>    <div id="layer-panel">      
+    <div class="panel-header">      
+        LAYERS      
+        <button class="btn-ui" style="background:var(--accent)" onclick="addLayer()">+ New</button>      
+    </div>      
+    <div id="layer-list"></div>      
+    <div style="padding: 10px; border-top: 1px solid #444;">      
+        <button class="btn-ui" style="width:100%" onclick="mergeDown()">▼ Merge Down</button>      
+    </div>      
+</div>    <script>      
+    const container = document.getElementById('canvas-container');      
+    const layerListUI = document.getElementById('layer-list');      
+    const paletteUI = document.getElementById('color-palette');      let layers = [];      
+let activeIndex = 0;      
+let isDrawing = false;      
+let currentTool = 'brush';      
+let currentSize = 2;      
+let eraserSize = 40;      
+let currentColor = '#000000';      
+let brushOpacity = 1.0;      
+let historyStack = [];      
+let redoStack = [];      
+      
+let dragItemIndex = null;
 
-.handle {
-  cursor: grab;
-}
+const customColors = ['#FFC74E', '#000000', '#FFFFFF', '#BE6D6A', '#747DAB', '#767676'];      
 
-.layer-lock.active {
-  background: yellow;
-  color: black;
-}
-</style>
-</head>
+function init() {      
+    customColors.forEach((color, i) => {      
+        const circle = document.createElement('div');      
+        circle.className = `color-circle ${color === '#000000' ? 'active-color' : ''}`;      
+        circle.style.backgroundColor = color;      
+        circle.onclick = () => updateColor(color);      
+        paletteUI.appendChild(circle);      
+    });      
+    addLayer();      
+}      
 
-<body>
+function toggleFloating(id) {      
+    const panels = ['brush-panel', 'color-panel'];      
+    panels.forEach(p => {      
+        const el = document.getElementById(p);      
+        if(p === id) el.style.display = el.style.display === 'flex' ? 'none' : 'flex';      
+        else el.style.display = 'none';      
+    });      
+}      
 
-<div id="toolbar">
-  <div class="history-tools">
-    <button onclick="undo()">&lt;</button>
-    <button onclick="redo()">&gt;</button>
-  </div>
+// --- LAYER LOGIC ---      
+function addLayer() {      
+    const canvas = document.createElement('canvas');      
+    canvas.width = container.offsetWidth;       
+    canvas.height = container.offsetHeight;      
+    container.appendChild(canvas);      
+    const ctx = canvas.getContext('2d');      
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';      
+          
+    const layerObj = {       
+        id: Date.now(), canvas, ctx,       
+        visible: true, locked: false,       
+        opacity: 1, blend: 'source-over',      
+        name: "Layer " + (layers.length + 1)       
+    };      
+    layers.unshift(layerObj);      
+    activeIndex = 0;      
+    refreshLayers();      
+    saveState();      
+}      
 
-  <div id="color-palette"></div>
+function refreshLayers() {      
+    layerListUI.innerHTML = '';      
+    layers.forEach((layer, i) => {      
+        layer.canvas.style.zIndex = layers.length - i;      
+        layer.canvas.style.display = layer.visible ? 'block' : 'none';      
+        layer.canvas.style.opacity = layer.opacity;      
+        layer.canvas.style.mixBlendMode = layer.blend === 'source-over' ? 'normal' : layer.blend;      
+              
+        const item = document.createElement('div');      
+        item.className = `layer-item ${i === activeIndex ? 'selected' : ''}`;      
+        item.draggable = true;
+        item.dataset.index = i;
 
-  <div class="tool active" data-tool="brush" data-size="2">🖊️</div>
-  <div class="tool" data-tool="eraser" data-size="40">🧽</div>
+        // Drag and Drop Handlers
+        item.addEventListener('dragstart', (e) => { dragItemIndex = i; item.classList.add('dragging'); });
+        item.addEventListener('dragend', () => { item.classList.remove('dragging'); });
+        item.addEventListener('dragover', (e) => { e.preventDefault(); });
+        item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const from = dragItemIndex;
+            const to = i;
+            const movedItem = layers.splice(from, 1)[0];
+            layers.splice(to, 0, movedItem);
+            activeIndex = to;
+            refreshLayers();
+        });
 
-  <!-- Mid DIHAPUS SESUAI PERMINTAAN -->
-</div>
+        item.onclick = () => { activeIndex = i; refreshLayers(); };      
+              
+        item.innerHTML = `      
+            <div class="layer-row-top">      
+                <span class="handle">≡</span>      
+                <input class="layer-name" value="${layer.name}" onchange="layers[${i}].name=this.value" onclick="event.stopPropagation()">      
+                <div class="layer-controls">      
+                    <button class="btn-ui ${layer.locked ? 'btn-locked' : ''}" onclick="event.stopPropagation(); toggleLock(${i})">${layer.locked ? '🔒' : '🔓'}</button>      
+                    <button class="btn-ui" onclick="event.stopPropagation(); deleteLayer(${i})">🗑️</button>
+                    <button class="btn-ui" onclick="event.stopPropagation(); toggleVis(${i})">${layer.visible ? '👁️' : '❌'}</button>      
+                </div>      
+            </div>      
+            <div class="layer-meta">      
+                <span>Blend</span>      
+                <select onchange="event.stopPropagation(); changeBlend(${i}, this.value)">      
+                    <option value="source-over" ${layer.blend==='source-over'?'selected':''}>Normal</option>      
+                    <option value="multiply" ${layer.blend==='multiply'?'selected':''}>Multiply</option>      
+                    <option value="screen" ${layer.blend==='screen'?'selected':''}>Screen</option>      
+                    <option value="overlay" ${layer.blend==='overlay'?'selected':''}>Overlay</option>      
+                </select>      
+                <span>Op</span>      
+                <input type="range" min="0" max="100" value="${layer.opacity*100}" oninput="event.stopPropagation(); changeLayerOp(${i}, this.value)">      
+            </div>      
+        `;      
+        layerListUI.appendChild(item);      
+    });      
+}      
 
-<div id="canvas-wrapper">
-  <div id="canvas-container"></div>
-</div>
+function mergeDown() {      
+    if (activeIndex >= layers.length - 1) return;      
+    const top = layers[activeIndex];      
+    const bottom = layers[activeIndex + 1];      
+          
+    bottom.ctx.globalAlpha = top.opacity;      
+    bottom.ctx.globalCompositeOperation = top.blend;      
+    bottom.ctx.drawImage(top.canvas, 0, 0);      
+          
+    bottom.ctx.globalAlpha = 1;      
+    bottom.ctx.globalCompositeOperation = 'source-over';      
+          
+    deleteLayer(activeIndex);      
+}      
 
-<button onclick="toggleLayerPanel()">LAYERS</button>
+function changeLayerOp(i, val) { layers[i].opacity = val/100; refreshLayers(); }      
+function changeBlend(i, val) { layers[i].blend = val; refreshLayers(); }      
+function toggleVis(i) { layers[i].visible = !layers[i].visible; refreshLayers(); }      
+function toggleLock(i) { layers[i].locked = !layers[i].locked; refreshLayers(); }      
+function deleteLayer(i) {      
+    if (layers.length <= 1) return;      
+    container.removeChild(layers[i].canvas);      
+    layers.splice(i, 1);      
+    activeIndex = Math.max(0, i-1);      
+    refreshLayers();      
+    saveState();      
+}      
 
-<div id="layer-panel">
-  <div id="layer-list"></div>
-</div>
+// --- DRAW LOGIC ---      
+function updateColor(c) {      
+    currentColor = c;      
+    document.getElementById('main-color-input').value = c;      
+    document.getElementById('color-hex').innerText = c.toUpperCase();      
+    document.querySelectorAll('.color-circle').forEach(circle => {      
+        circle.classList.toggle('active-color', circle.style.backgroundColor === c);      
+    });      
+}      
 
-<script>
-const container = document.getElementById("canvas-container");
-const layerListUI = document.getElementById("layer-list");
+function updateBrushSize(v) { currentSize = v; document.getElementById('val-brush-size').innerText = v; }      
+function updateEraserSize(v) { eraserSize = v; document.getElementById('val-eraser-size').innerText = v; }      
+function updateBrushOpacity(v) { brushOpacity = v/100; document.getElementById('val-brush-op').innerText = v + '%'; }      
 
-let layers = [];
-let activeIndex = 0;
-let isDrawing = false;
+document.querySelectorAll('.tool').forEach(t => {      
+    if(t.dataset.tool) {      
+        t.onclick = () => {      
+            document.querySelectorAll('.tool').forEach(x => x.classList.remove('active'));      
+            t.classList.add('active');      
+            currentTool = t.dataset.tool;      
+            if(t.dataset.size) currentSize = parseInt(t.dataset.size);      
+        };      
+    }      
+});      
 
-let currentTool = "brush";
-let currentSize = 2;
-let eraserSize = 40;
-let currentColor = "#000000";
+function getCoords(e) {      
+    const rect = container.getBoundingClientRect();      
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;      
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;      
+    return {       
+        x: clientX - rect.left,       
+        y: clientY - rect.top       
+    };      
+}      
 
-/* INIT */
-function init() {
-  addLayer();
-}
+function startDrawing(e) {      
+    if (e.touches && e.touches.length > 1) return;      
+    const active = layers[activeIndex];      
+    if (!active || active.locked || !active.visible) return;      
+          
+    isDrawing = true;      
+    const {x, y} = getCoords(e);      
+    active.ctx.beginPath();      
+    active.ctx.moveTo(x, y);      
+}      
 
-/* LAYER */
-function addLayer() {
-  const canvas = document.createElement("canvas");
-  canvas.width = container.offsetWidth;
-  canvas.height = container.offsetHeight;
-  container.appendChild(canvas);
+function draw(e) {      
+    if (!isDrawing) return;      
+    const {x, y} = getCoords(e);      
+    const active = layers[activeIndex];      
+    const ctx = active.ctx;      
 
-  const ctx = canvas.getContext("2d");
-  ctx.lineCap = "round";
+    ctx.globalAlpha = brushOpacity;      
+    if (currentTool === 'eraser') {      
+        ctx.globalCompositeOperation = 'destination-out';      
+        ctx.lineWidth = eraserSize;      
+    } else {      
+        ctx.globalCompositeOperation = 'source-over';      
+        ctx.strokeStyle = currentColor;      
+        ctx.lineWidth = currentSize;      
+    }      
+          
+    ctx.lineTo(x, y);      
+    ctx.stroke();      
+}      
 
-  const layer = {
-    id: Date.now(),
-    canvas,
-    ctx,
-    visible: true,
-    locked: false,
-    name: "Layer " + (layers.length + 1)
-  };
+function stopDrawing() {      
+    if (isDrawing) {      
+        isDrawing = false;      
+        const active = layers[activeIndex];      
+        active.ctx.globalAlpha = 1;      
+        active.ctx.globalCompositeOperation = 'source-over';      
+        saveState();      
+    }      
+}      
 
-  layers.unshift(layer);
-  activeIndex = 0;
-  refreshLayers();
-}
+// --- HISTORY ---      
+function saveState() {      
+    const state = layers.map(l => ({ id: l.id, data: l.canvas.toDataURL(), name: l.name }));      
+    historyStack.push(state);      
+    if (historyStack.length > 20) historyStack.shift();      
+    redoStack = [];      
+}      
 
-/* DRAG & DROP */
-let dragIndex = null;
+function undo() {      
+    if (historyStack.length <= 1) return;      
+    redoStack.push(historyStack.pop());      
+    applyState(historyStack[historyStack.length - 1]);      
+}      
 
-function refreshLayers() {
-  layerListUI.innerHTML = "";
+function redo() {      
+    if (redoStack.length === 0) return;      
+    const nextState = redoStack.pop();      
+    historyStack.push(nextState);      
+    applyState(nextState);      
+}      
 
-  layers.forEach((layer, i) => {
-    layer.canvas.style.zIndex = layers.length - i;
+function applyState(state) {      
+    state.forEach(layerState => {      
+        const target = layers.find(l => l.id === layerState.id);      
+        if (target) {      
+            const img = new Image();      
+            img.src = layerState.data;      
+            img.onload = () => {      
+                target.ctx.clearRect(0, 0, container.offsetWidth, container.offsetHeight);      
+                target.ctx.drawImage(img, 0, 0);      
+            };      
+        }      
+    });      
+}      
 
-    const div = document.createElement("div");
-    div.className = "layer-item";
-    div.draggable = true;
+function toggleLayerPanel() {       
+    const p = document.getElementById('layer-panel');       
+    p.style.display = p.style.display === 'flex' ? 'none' : 'flex';       
+}      
 
-    div.ondragstart = () => dragIndex = i;
-    div.ondrop = () => {
-      const temp = layers[dragIndex];
-      layers.splice(dragIndex, 1);
-      layers.splice(i, 0, temp);
-      refreshLayers();
-    };
-    div.ondragover = e => e.preventDefault();
-
-    div.innerHTML = `
-      <div class="layer-row-top">
-        <span class="handle">≡</span>
-
-        <button class="layer-lock ${layer.locked ? "active" : ""}"
-          onclick="toggleLock(${i})">
-          🔒
-        </button>
-
-        <button onclick="deleteLayer(${i})">🗑️</button>
-
-        <input value="${layer.name}" onchange="layers[${i}].name=this.value">
-      </div>
-    `;
-
-    layerListUI.appendChild(div);
-  });
-}
-
-/* DELETE LAYER */
-function deleteLayer(i) {
-  container.removeChild(layers[i].canvas);
-  layers.splice(i, 1);
-  refreshLayers();
-}
-
-/* LOCK */
-function toggleLock(i) {
-  layers[i].locked = !layers[i].locked;
-  refreshLayers();
-}
-
-/* DRAW */
-function getCoords(e) {
-  const r = container.getBoundingClientRect();
-  return {
-    x: e.clientX - r.left,
-    y: e.clientY - r.top
-  };
-}
-
-container.addEventListener("mousedown", e => {
-  isDrawing = true;
-  const layer = layers[activeIndex];
-  const {x,y} = getCoords(e);
-  layer.ctx.beginPath();
-  layer.ctx.moveTo(x,y);
-});
-
-container.addEventListener("mousemove", e => {
-  if (!isDrawing) return;
-
-  const layer = layers[activeIndex];
-  if (layer.locked) return;
-
-  const {x,y} = getCoords(e);
-
-  if (currentTool === "eraser") {
-    layer.ctx.globalCompositeOperation = "destination-out";
-    layer.ctx.lineWidth = eraserSize;
-  } else {
-    layer.ctx.globalCompositeOperation = "source-over";
-    layer.ctx.strokeStyle = currentColor;
-    layer.ctx.lineWidth = currentSize;
-  }
-
-  layer.ctx.lineTo(x,y);
-  layer.ctx.stroke();
-});
-
-container.addEventListener("mouseup", () => isDrawing = false);
-
+container.addEventListener('touchstart', (e) => { if(e.touches.length === 1) { e.preventDefault(); startDrawing(e); } }, {passive: false});      
+container.addEventListener('touchmove', (e) => { if(e.touches.length === 1) { e.preventDefault(); draw(e); } }, {passive: false});      
+container.addEventListener('touchend', stopDrawing);      
+      
 window.onload = init;
-</script>
 
-</body>
-    </html>
+</script>  </body>
+
+</html>
