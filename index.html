@@ -3,51 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Paint Web App</title>
+    <title>Professional Canvas App</title>
     <style>
         :root { --bg: #1a1a1a; --panel: #2d2d2d; --accent: #00a2ff; --text: #eee; }
         * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #333; color: var(--text); overflow: hidden; display: flex; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #222; color: var(--text); overflow: hidden; display: flex; }
 
         /* Toolbar Kiri */
-        #toolbar { width: 80px; background: var(--panel); display: flex; flex-direction: column; align-items: center; padding: 10px; gap: 10px; border-right: 1px solid #444; z-index: 100; }
-        .tool { width: 60px; height: 60px; cursor: pointer; background: #3d3d3d; border: 1px solid #555; border-radius: 10px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; transition: 0.2s; }
+        #toolbar { width: 85px; background: var(--panel); display: flex; flex-direction: column; align-items: center; padding: 15px 5px; gap: 12px; border-right: 1px solid #444; z-index: 100; }
+        .tool { width: 65px; height: 60px; cursor: pointer; background: #3d3d3d; border: 1px solid #555; border-radius: 12px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; transition: 0.2s; }
+        .tool:hover { background: #4d4d4d; }
         .tool.active { border: 2px solid var(--accent); background: #444; box-shadow: 0 0 10px var(--accent); }
-        input[type="color"] { width: 50px; height: 40px; border: none; cursor: pointer; background: none; }
+        .history-tools { display: flex; gap: 5px; width: 65px; }
+        .btn-hist { flex: 1; height: 35px; background: #444; border: 1px solid #555; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-hist:hover { background: #555; }
+        input[type="color"] { width: 60px; height: 45px; border: none; cursor: pointer; background: none; margin-bottom: 5px; }
 
-        /* Area Gambar Fullscreen */
-        #canvas-wrapper { flex-grow: 1; position: relative; background: #222; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        #canvas-container { position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5); background: white; }
+        /* Area Canvas */
+        #canvas-wrapper { flex-grow: 1; position: relative; overflow: auto; display: flex; align-items: flex-start; justify-content: center; padding: 50px; }
+        #canvas-container { position: relative; background: white; box-shadow: 0 0 40px rgba(0,0,0,0.6); }
         canvas { position: absolute; top: 0; left: 0; cursor: crosshair; touch-action: none; }
-        
-        /* Background kotak-kotak transparan */
-        #checkerboard { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(45deg, #eee 25%, transparent 25%), linear-gradient(-45deg, #eee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #eee 75%), linear-gradient(-45deg, transparent 75%, #eee 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; z-index: 0; }
+        #checkerboard { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(45deg, #ddd 25%, transparent 25%), linear-gradient(-45deg, #ddd 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ddd 75%), linear-gradient(-45deg, transparent 75%, #ddd 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; z-index: 0; }
 
-        /* Floating Layer Panel */
-        #layer-panel { position: fixed; right: 20px; bottom: 80px; width: 280px; background: var(--panel); border-radius: 12px; display: none; flex-direction: column; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 200; max-height: 70vh; }
-        .panel-header { padding: 15px; background: #383838; font-weight: bold; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center; }
-        #layer-list { overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        /* Layer Panel */
+        #layer-panel { position: fixed; right: 25px; bottom: 85px; width: 280px; background: var(--panel); border-radius: 15px; display: none; flex-direction: column; border: 1px solid #444; box-shadow: 0 15px 35px rgba(0,0,0,0.7); z-index: 200; }
+        .panel-header { padding: 15px; background: #383838; font-weight: bold; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; }
+        #layer-list { max-height: 400px; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+        .layer-item { background: #3d3d3d; padding: 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; border: 2px solid transparent; cursor: pointer; }
+        .layer-item.selected { border-color: var(--accent); background: #4a4a4a; }
         
-        .layer-item { background: #3d3d3d; padding: 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; border: 2px solid transparent; cursor: pointer; }
-        .layer-item.selected { border-color: var(--accent); background: #444; }
-        .layer-actions { display: flex; gap: 5px; }
-        
-        /* Buttons */
-        .btn-round { background: #555; border: none; color: white; border-radius: 5px; padding: 5px 8px; cursor: pointer; }
-        .btn-lock.active { background: #ff9f00; color: black; }
-        .toggle-layers-btn { position: fixed; right: 20px; bottom: 20px; padding: 12px 24px; background: var(--accent); color: white; border: none; border-radius: 30px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,162,255,0.4); z-index: 201; }
+        .btn-ui { background: #555; border: none; color: white; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
+        .btn-ui.active-lock { background: #ff9f00; color: black; }
+        .toggle-layers-btn { position: fixed; right: 25px; bottom: 25px; padding: 15px 30px; background: var(--accent); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; box-shadow: 0 5px 20px rgba(0,162,255,0.4); z-index: 201; }
     </style>
 </head>
 <body>
 
     <div id="toolbar">
+        <div class="history-tools">
+            <button class="btn-hist" onclick="undo()" title="Undo">&lt;</button>
+            <button class="btn-hist" onclick="redo()" title="Redo">&gt;</button>
+        </div>
+        <hr style="width: 80%; border-color: #444;">
         <input type="color" id="colorPicker" value="#000000">
         <div class="tool active" data-tool="brush" data-size="2"><span>🖊️</span>Tipis</div>
         <div class="tool" data-tool="brush" data-size="8"><span>🖌️</span>Sedang</div>
-        <div class="tool" data-tool="brush" data-size="20"><span>🎨</span>Gede</div>
-        <div class="tool" data-tool="brush" data-size="60"><span>🌑</span>Jumbo</div>
-        <div class="tool" data-tool="eraser" data-size="40"><span>🧽</span>Eraser</div>
-        <div class="tool" data-tool="bucket"><span>🪣</span>Bucket</div>
+        <div class="tool" data-tool="brush" data-size="22"><span>🎨</span>Gede</div>
+        <div class="tool" data-tool="brush" data-size="70"><span>🌑</span>Jumbo</div>
+        <div class="tool" data-tool="eraser" data-size="45"><span>🧽</span>Eraser</div>
     </div>
 
     <div id="canvas-wrapper">
@@ -61,7 +64,7 @@
     <div id="layer-panel">
         <div class="panel-header">
             LAYERS
-            <button class="btn-round" style="background:var(--accent)" onclick="addLayer()">+ Add</button>
+            <button class="btn-ui" style="background:var(--accent)" onclick="addLayer()">+ New</button>
         </div>
         <div id="layer-list"></div>
     </div>
@@ -75,14 +78,51 @@
         let currentTool = 'brush';
         let currentSize = 2;
         let currentColor = '#000000';
+        
+        // History System
+        let historyStack = [];
+        let redoStack = [];
 
-        // Inisialisasi Tool
+        function saveState() {
+            // Kita simpan kondisi semua layer sebagai "Snapshot"
+            const state = layers.map(l => l.canvas.toDataURL());
+            historyStack.push(state);
+            if (historyStack.length > 20) historyStack.shift(); // Limit biar ga berat
+            redoStack = []; // Reset redo pas ada goresan baru
+        }
+
+        function undo() {
+            if (historyStack.length <= 1) return;
+            redoStack.push(historyStack.pop());
+            const prevState = historyStack[historyStack.length - 1];
+            applyState(prevState);
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+            const nextState = redoStack.pop();
+            historyStack.push(nextState);
+            applyState(nextState);
+        }
+
+        function applyState(state) {
+            state.forEach((dataUrl, i) => {
+                const img = new Image();
+                img.src = dataUrl;
+                img.onload = () => {
+                    layers[i].ctx.clearRect(0, 0, 1200, 800);
+                    layers[i].ctx.drawImage(img, 0, 0);
+                };
+            });
+        }
+
+        // Setup Tools
         document.querySelectorAll('.tool').forEach(t => {
             t.onclick = () => {
                 document.querySelectorAll('.tool').forEach(x => x.classList.remove('active'));
                 t.classList.add('active');
                 currentTool = t.dataset.tool;
-                currentSize = parseInt(t.dataset.size || 0);
+                currentSize = parseInt(t.dataset.size);
             };
         });
 
@@ -90,24 +130,16 @@
 
         function addLayer() {
             const canvas = document.createElement('canvas');
-            canvas.width = 1200;
-            canvas.height = 800;
+            canvas.width = 1200; canvas.height = 800;
             container.appendChild(canvas);
-
             const ctx = canvas.getContext('2d');
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
 
-            const layerObj = {
-                canvas, ctx, 
-                visible: true, 
-                locked: false, 
-                name: "Layer " + (layers.length + 1)
-            };
-
-            layers.unshift(layerObj); // Tambah ke depan (atas)
+            const layerObj = { canvas, ctx, visible: true, locked: false, name: "Layer " + (layers.length + 1) };
+            layers.unshift(layerObj); 
             activeIndex = 0;
             refreshLayers();
+            saveState(); // Simpan state awal
         }
 
         function refreshLayers() {
@@ -115,19 +147,16 @@
             layers.forEach((layer, i) => {
                 layer.canvas.style.zIndex = layers.length - i;
                 layer.canvas.style.display = layer.visible ? 'block' : 'none';
-
                 const item = document.createElement('div');
                 item.className = `layer-item ${i === activeIndex ? 'selected' : ''}`;
                 item.onclick = () => { activeIndex = i; refreshLayers(); };
-
                 item.innerHTML = `
                     <span>${layer.name}</span>
                     <div class="layer-actions">
-                        <button class="btn-round btn-lock ${layer.locked ? 'active' : ''}" onclick="event.stopPropagation(); toggleLock(${i})">🔒</button>
-                        <button class="btn-round" onclick="event.stopPropagation(); toggleVis(${i})">${layer.visible ? '👁️' : '❌'}</button>
-                        <button class="btn-round" style="background:#dc3545" onclick="event.stopPropagation(); deleteLayer(${i})">🗑️</button>
-                    </div>
-                `;
+                        <button class="btn-ui ${layer.locked ? 'active-lock' : ''}" onclick="event.stopPropagation(); toggleLock(${i})">🔒</button>
+                        <button class="btn-ui" onclick="event.stopPropagation(); toggleVis(${i})">${layer.visible ? '👁️' : '❌'}</button>
+                        <button class="btn-ui" style="background:#dc3545" onclick="event.stopPropagation(); deleteLayer(${i})">🗑️</button>
+                    </div>`;
                 layerListUI.appendChild(item);
             });
         }
@@ -145,71 +174,52 @@
             layers.splice(i, 1);
             activeIndex = 0;
             refreshLayers();
+            saveState();
         }
 
-        // Logic Menggambar (Perbaikan: Mouse & Touch)
         function getCoords(e) {
             const rect = container.getBoundingClientRect();
-            return {
-                x: (e.clientX || e.touches[0].clientX) - rect.left,
-                y: (e.clientY || e.touches[0].clientY) - rect.top
-            };
+            const clientX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+            const clientY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+            return { x: clientX - rect.left, y: clientY - rect.top };
         }
 
         function startDrawing(e) {
             if (layers[activeIndex].locked || !layers[activeIndex].visible) return;
             isDrawing = true;
             const {x, y} = getCoords(e);
-            const ctx = layers[activeIndex].ctx;
-            
-            if(currentTool === 'bucket') {
-                fill(ctx, layers[activeIndex].locked);
-                return;
-            }
-
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            draw(e);
+            layers[activeIndex].ctx.beginPath();
+            layers[activeIndex].ctx.moveTo(x, y);
         }
 
         function draw(e) {
-            if (!isDrawing || currentTool === 'bucket') return;
+            if (!isDrawing) return;
             const {x, y} = getCoords(e);
             const active = layers[activeIndex];
             const ctx = active.ctx;
-
             ctx.globalCompositeOperation = active.locked ? 'source-atop' : (currentTool === 'eraser' ? 'destination-out' : 'source-over');
             ctx.strokeStyle = currentTool === 'eraser' ? 'rgba(0,0,0,1)' : currentColor;
             ctx.lineWidth = currentSize;
-
             ctx.lineTo(x, y);
             ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(x, y);
         }
 
         function stopDrawing() {
-            isDrawing = false;
+            if (isDrawing) {
+                isDrawing = false;
+                saveState(); // Simpan history setiap selesai satu goresan
+            }
         }
 
-        function fill(ctx, locked) {
-            ctx.globalCompositeOperation = locked ? 'source-atop' : 'source-over';
-            ctx.fillStyle = currentColor;
-            ctx.fillRect(0, 0, 1200, 800);
-        }
-
-        // Event Listeners ke Container (Supaya semua layer kena)
+        // Listeners
         container.addEventListener('mousedown', startDrawing);
         window.addEventListener('mousemove', draw);
         window.addEventListener('mouseup', stopDrawing);
-
-        // Support HP/Tablet
         container.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); }, {passive: false});
         container.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, {passive: false});
         container.addEventListener('touchend', stopDrawing);
 
-        // Start
-        addLayer();
+        addLayer(); // Start with 1 layer
     </script>
 </body>
 </html>
