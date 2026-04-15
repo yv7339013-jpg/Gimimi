@@ -3,62 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Professional Canvas App - Mobile</title>
+    <title>Professional Canvas App - Layer Move</title>
     <style>
         :root { --bg: #1a1a1a; --panel: #2d2d2d; --accent: #00a2ff; --text: #eee; }
         * { box-sizing: border-box; touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background: var(--bg); color: var(--text); overflow: hidden; display: flex; height: 100vh; height: -webkit-fill-available; }
-        html { height: -webkit-fill-available; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background: var(--bg); color: var(--text); overflow: hidden; display: flex; height: 100vh; }
 
-        /* Toolbar Kiri - Mobile Optimized */
         #toolbar { width: 75px; background: var(--panel); display: flex; flex-direction: column; align-items: center; padding: 10px 5px; gap: 8px; border-right: 1px solid #444; z-index: 100; flex-shrink: 0; }
-        
         .history-tools { display: flex; gap: 4px; width: 65px; }
         .btn-hist { flex: 1; height: 35px; background: #444; border: 1px solid #555; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; }
-        .btn-hist:hover { background: #555; }
         
-        /* Palet Warna Kustom */
         #color-palette { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: 65px; margin-bottom: 5px; }
-        .color-circle { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #555; cursor: pointer; transition: 0.2s; }
-        .color-circle:hover { transform: scale(1.1); }
+        .color-circle { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #555; cursor: pointer; }
         .color-circle.active-color { border-color: white; box-shadow: 0 0 5px white; }
 
-        .tool { width: 65px; height: 50px; cursor: pointer; background: #3d3d3d; border: 1px solid #555; border-radius: 10px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; transition: 0.2s; text-align: center; }
-        .tool span { font-size: 16px; margin-bottom: 2px; }
+        .tool { width: 65px; height: 50px; cursor: pointer; background: #3d3d3d; border: 1px solid #555; border-radius: 10px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; transition: 0.2s; }
         .tool.active { border: 2px solid var(--accent); background: #4a4a4a; box-shadow: 0 0 10px var(--accent); }
 
-        /* Area Canvas Responsif (MANTAP!) */
         #canvas-wrapper { flex-grow: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #111; padding: 5px; }
-        #canvas-container { position: relative; width: 100%; height: 100%; box-shadow: 0 0 30px rgba(0,0,0,0.7); background: white; border-radius: 4px; overflow: hidden; }
-        canvas { position: absolute; top: 0; left: 0; cursor: crosshair; }
+        #canvas-container { position: relative; width: 100%; height: 100%; background: white; border-radius: 4px; overflow: hidden; }
+        canvas { position: absolute; top: 0; left: 0; }
         #checkerboard { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(45deg, #ddd 25%, transparent 25%), linear-gradient(-45deg, #ddd 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ddd 75%), linear-gradient(-45deg, transparent 75%, #ddd 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; z-index: 0; }
 
-        /* Layer Panel Melayang */
-        #layer-panel { position: fixed; left: 85px; top: 10px; bottom: 80px; width: calc(100% - 100px); max-width: 300px; background: var(--panel); border-radius: 15px; display: none; flex-direction: column; border: 1px solid #444; box-shadow: 0 15px 40px rgba(0,0,0,0.8); z-index: 200; }
-        .panel-header { padding: 12px 15px; background: #383838; font-weight: bold; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; }
+        #layer-panel { position: fixed; left: 85px; top: 10px; bottom: 80px; width: calc(100% - 100px); max-width: 320px; background: var(--panel); border-radius: 15px; display: none; flex-direction: column; border: 1px solid #444; box-shadow: 0 15px 40px rgba(0,0,0,0.8); z-index: 200; }
+        .panel-header { padding: 12px 15px; background: #383838; font-weight: bold; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center; }
         #layer-list { overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
         
-        .layer-item { background: #3d3d3d; padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; border: 2px solid transparent; }
+        .layer-item { background: #3d3d3d; padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; border: 2px solid transparent; transition: transform 0.2s; }
         .layer-item.selected { border-color: var(--accent); background: #4a4a4a; }
-        .layer-name { font-size: 12px; }
+        .layer-item.dragging { opacity: 0.5; background: #555; transform: scale(1.02); }
+        
+        .handle { cursor: grab; padding: 5px 10px; color: #888; font-size: 20px; user-select: none; }
+        .handle:active { cursor: grabbing; }
+        
+        .layer-main-info { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; margin-left: 5px; }
+        .layer-name { font-size: 12px; font-weight: bold; }
+        .layer-actions { display: flex; gap: 4px; }
         
         .btn-ui { background: #555; border: none; color: white; border-radius: 6px; padding: 5px 8px; cursor: pointer; font-size: 13px; }
         .btn-ui.active-lock { background: #ff9f00; color: black; }
-        .toggle-layers-btn { position: fixed; right: 20px; bottom: 20px; padding: 12px 24px; background: var(--accent); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 5px 20px rgba(0,162,255,0.5); z-index: 101; }
+        .toggle-layers-btn { position: fixed; right: 20px; bottom: 20px; padding: 12px 24px; background: var(--accent); color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; box-shadow: 0 5px 20px rgba(0,162,255,0.5); z-index: 101; }
     </style>
 </head>
 <body>
 
     <div id="toolbar">
         <div class="history-tools">
-            <button class="btn-hist" onclick="undo()" title="Undo">&lt;</button>
-            <button class="btn-hist" onclick="redo()" title="Redo">&gt;</button>
+            <button class="btn-hist" onclick="undo()">&lt;</button>
+            <button class="btn-hist" onclick="redo()">&gt;</button>
         </div>
         <hr style="width: 100%; border-color: #444; margin: 5px 0;">
-        
-        <div id="color-palette">
-            </div>
-
+        <div id="color-palette"></div>
         <div class="tool active" data-tool="brush" data-size="2"><span>🖊️</span>Tipis</div>
         <div class="tool" data-tool="brush" data-size="7"><span>🖌️</span>Sedang</div>
         <div class="tool" data-tool="brush" data-size="18"><span>🎨</span>Gede</div>
@@ -69,16 +64,13 @@
     <div id="canvas-wrapper">
         <div id="canvas-container">
             <div id="checkerboard"></div>
-            </div>
+        </div>
     </div>
 
     <button class="toggle-layers-btn" onclick="toggleLayerPanel()">📑 MANAGE LAYERS</button>
 
     <div id="layer-panel">
-        <div class="panel-header">
-            LAYERS
-            <button class="btn-ui" style="background:var(--accent)" onclick="addLayer()">+ New</button>
-        </div>
+        <div class="panel-header">LAYERS <button class="btn-ui" style="background:var(--accent)" onclick="addLayer()">+ New</button></div>
         <div id="layer-list"></div>
     </div>
 
@@ -93,16 +85,12 @@
         let currentTool = 'brush';
         let currentSize = 2;
         let currentColor = '#000000';
-        
-        // Warna Kustom
-        const customColors = ['#FFC74E', '#767676', '#000000', '#747DAB', '#FFFFFF', '#BE6D6A', '#ADA8A2', '#D9D6D2'];
-
-        // History System
         let historyStack = [];
         let redoStack = [];
+        const customColors = ['#FFC74E', '#767676', '#000000', '#747DAB', '#FFFFFF', '#BE6D6A', '#ADA8A2', '#D9D6D2'];
 
         function saveState() {
-            const state = layers.map(l => l.canvas.toDataURL());
+            const state = layers.map(l => ({ id: l.id, data: l.canvas.toDataURL() }));
             historyStack.push(state);
             if (historyStack.length > 20) historyStack.shift();
             redoStack = [];
@@ -111,8 +99,7 @@
         function undo() {
             if (historyStack.length <= 1) return;
             redoStack.push(historyStack.pop());
-            const prevState = historyStack[historyStack.length - 1];
-            applyState(prevState);
+            applyState(historyStack[historyStack.length - 1]);
         }
 
         function redo() {
@@ -123,20 +110,22 @@
         }
 
         function applyState(state) {
-            state.forEach((dataUrl, i) => {
-                const img = new Image();
-                img.src = dataUrl;
-                img.onload = () => {
-                    layers[i].ctx.clearRect(0, 0, container.offsetWidth, container.offsetHeight);
-                    layers[i].ctx.drawImage(img, 0, 0);
-                };
+            state.forEach(layerState => {
+                const target = layers.find(l => l.id === layerState.id);
+                if (target) {
+                    const img = new Image();
+                    img.src = layerState.data;
+                    img.onload = () => {
+                        target.ctx.clearRect(0, 0, container.offsetWidth, container.offsetHeight);
+                        target.ctx.drawImage(img, 0, 0);
+                    };
+                }
             });
         }
 
-        // Setup Palet Warna
-        customColors.forEach((color, index) => {
+        customColors.forEach((color, i) => {
             const circle = document.createElement('div');
-            circle.className = `color-circle ${index === 2 ? 'active-color' : ''}`; // Hitam aktif awal
+            circle.className = `color-circle ${i === 2 ? 'active-color' : ''}`;
             circle.style.backgroundColor = color;
             circle.onclick = () => {
                 document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('active-color'));
@@ -146,7 +135,6 @@
             paletteUI.appendChild(circle);
         });
 
-        // Setup Tools
         document.querySelectorAll('.tool').forEach(t => {
             t.onclick = () => {
                 document.querySelectorAll('.tool').forEach(x => x.classList.remove('active'));
@@ -158,16 +146,12 @@
 
         function addLayer() {
             const canvas = document.createElement('canvas');
-            // Ukuran kanvas ngikutin container (RESPONSIF!)
-            canvas.width = container.offsetWidth; 
-            canvas.height = container.offsetHeight;
+            canvas.width = container.offsetWidth; canvas.height = container.offsetHeight;
             container.appendChild(canvas);
-            
             const ctx = canvas.getContext('2d');
             ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-
-            const layerObj = { canvas, ctx, visible: true, locked: false, name: "Layer " + (layers.length + 1) };
-            layers.unshift(layerObj); 
+            const layerObj = { id: Date.now(), canvas, ctx, visible: true, locked: false, name: "Layer " + (layers.length + 1) };
+            layers.unshift(layerObj);
             activeIndex = 0;
             refreshLayers();
             saveState();
@@ -178,25 +162,68 @@
             layers.forEach((layer, i) => {
                 layer.canvas.style.zIndex = layers.length - i;
                 layer.canvas.style.display = layer.visible ? 'block' : 'none';
+                
                 const item = document.createElement('div');
                 item.className = `layer-item ${i === activeIndex ? 'selected' : ''}`;
-                item.onclick = () => { activeIndex = i; refreshLayers(); };
+                item.dataset.index = i;
+                
                 item.innerHTML = `
-                    <span class="layer-name">${layer.name}</span>
-                    <div class="layer-actions">
-                        <button class="btn-ui ${layer.locked ? 'active-lock' : ''}" onclick="event.stopPropagation(); toggleLock(${i})">🔒</button>
-                        <button class="btn-ui" onclick="event.stopPropagation(); toggleVis(${i})">${layer.visible ? '👁️' : '❌'}</button>
-                        <button class="btn-ui" style="background:#dc3545; padding: 5px;" onclick="event.stopPropagation(); deleteLayer(${i})">🗑️</button>
+                    <div class="handle">≡</div>
+                    <div class="layer-main-info" onclick="selectLayer(${i})">
+                        <span class="layer-name">${layer.name}</span>
+                        <div class="layer-actions">
+                            <button class="btn-ui ${layer.locked ? 'active-lock' : ''}" onclick="event.stopPropagation(); toggleLock(${i})">🔒</button>
+                            <button class="btn-ui" onclick="event.stopPropagation(); toggleVis(${i})">${layer.visible ? '👁️' : '❌'}</button>
+                            <button class="btn-ui" style="background:#dc3545" onclick="event.stopPropagation(); deleteLayer(${i})">🗑️</button>
+                        </div>
                     </div>`;
+                
+                // Drag and Drop Logic
+                const handle = item.querySelector('.handle');
+                handle.ontouchstart = (e) => startDrag(e, item, i);
+                
                 layerListUI.appendChild(item);
             });
         }
 
-        function toggleLayerPanel() {
-            const p = document.getElementById('layer-panel');
-            p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
+        let dragItem = null;
+        let startY = 0;
+
+        function startDrag(e, item, index) {
+            dragItem = item;
+            item.classList.add('dragging');
+            startY = e.touches[0].clientY;
+            
+            const onMove = (moveEvent) => {
+                const currentY = moveEvent.touches[0].clientY;
+                const nextItem = document.elementFromPoint(moveEvent.touches[0].clientX, currentY)?.closest('.layer-item');
+                
+                if (nextItem && nextItem !== dragItem) {
+                    const nextIndex = parseInt(nextItem.dataset.index);
+                    const currentIndex = parseInt(dragItem.dataset.index);
+                    
+                    // Swap di array
+                    [layers[currentIndex], layers[nextIndex]] = [layers[nextIndex], layers[currentIndex]];
+                    activeIndex = (activeIndex === currentIndex) ? nextIndex : (activeIndex === nextIndex ? currentIndex : activeIndex);
+                    refreshLayers();
+                    dragItem = layerListUI.children[nextIndex];
+                    dragItem.classList.add('dragging');
+                }
+            };
+            
+            const onEnd = () => {
+                if (dragItem) dragItem.classList.remove('dragging');
+                dragItem = null;
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onEnd);
+            };
+            
+            document.addEventListener('touchmove', onMove, {passive: false});
+            document.addEventListener('touchend', onEnd);
         }
 
+        function selectLayer(i) { activeIndex = i; refreshLayers(); }
+        function toggleLayerPanel() { const p = document.getElementById('layer-panel'); p.style.display = p.style.display === 'flex' ? 'none' : 'flex'; }
         function toggleVis(i) { layers[i].visible = !layers[i].visible; refreshLayers(); }
         function toggleLock(i) { layers[i].locked = !layers[i].locked; refreshLayers(); }
         function deleteLayer(i) {
@@ -210,8 +237,8 @@
 
         function getCoords(e) {
             const rect = container.getBoundingClientRect();
-            const clientX = (e.touches ? e.touches[0].clientX : e.clientX);
-            const clientY = (e.touches ? e.touches[0].clientY : e.clientY);
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             return { x: clientX - rect.left, y: clientY - rect.top };
         }
 
@@ -221,7 +248,6 @@
             const {x, y} = getCoords(e);
             layers[activeIndex].ctx.beginPath();
             layers[activeIndex].ctx.moveTo(x, y);
-            draw(e); // Biar bisa titik
         }
 
         function draw(e) {
@@ -237,30 +263,13 @@
         }
 
         function stopDrawing() {
-            if (isDrawing) {
-                isDrawing = false;
-                saveState();
-            }
+            if (isDrawing) { isDrawing = false; saveState(); }
         }
 
-        // Listeners for Touch and Mouse
         container.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); }, {passive: false});
         container.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, {passive: false});
-        container.addEventListener('touchend', (e) => { e.preventDefault(); stopDrawing(); }, {passive: false});
+        container.addEventListener('touchend', stopDrawing);
         
-        container.addEventListener('mousedown', startDrawing);
-        window.addEventListener('mousemove', draw);
-        window.addEventListener('mouseup', stopDrawing);
-
-        // Handle window resize (MANTAP!)
-        window.addEventListener('resize', () => {
-            if (layers.length === 0) return;
-            // Kalau lo rotate layar, kanvas perlu di-resize, tapi ini rada rumit karena history bisa ancur.
-            // Buat sekarang, mending reload buat reset kanvas biar pas, tapi history bakal ilang.
-            // location.reload(); 
-        });
-
-        // Start with 1 layer after container size is settled
         window.onload = addLayer;
     </script>
 </body>
