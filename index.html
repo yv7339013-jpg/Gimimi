@@ -2,150 +2,217 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Snake - Dengan Kontrol</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Lukis Pro - Alpha</title>
     <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #1a1a1a;
-            color: white;
-            font-family: sans-serif;
-            overflow: hidden; /* Supaya layar gak goyang pas main */
-        }
-        canvas {
-            border: 4px solid #00ffcc;
-            background-color: #000;
-            max-width: 90vw;
-            max-height: 50vh;
-        }
-        .score { font-size: 20px; margin: 10px 0; color: #00ffcc; }
+        :root { --bg: #1a1a1a; --panel: #2d2d2d; --accent: #00a2ff; --text: #eee; }
+        body { font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; margin: 0; background: #111; color: var(--text); overflow: hidden; }
+
+        /* Toolbar Kiri */
+        #toolbar { width: 90px; background: var(--panel); display: flex; flex-direction: column; align-items: center; padding: 15px 5px; gap: 10px; border-right: 1px solid #3d3d3d; z-index: 100; }
+        .tool { width: 65px; height: 55px; cursor: pointer; background: #3d3d3d; border: 1px solid #4d4d4d; border-radius: 8px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; transition: 0.2s; }
+        .tool:hover { background: #4d4d4d; }
+        .tool.active { border: 2px solid var(--accent); background: #444; box-shadow: 0 0 8px var(--accent); }
+        input[type="color"] { width: 65px; height: 45px; border: none; cursor: pointer; background: none; margin-bottom: 5px; }
+
+        /* Area Canvas */
+        #canvas-container { flex-grow: 1; position: relative; background: #111; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .layer-canvas { position: absolute; background: transparent; cursor: crosshair; }
+        #checkerboard { position: absolute; width: 800px; height: 600px; background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; background-color: white; z-index: -1; }
+
+        /* Panel Layer Kanan */
+        #right-panel { width: 250px; background: var(--panel); border-left: 1px solid #3d3d3d; display: flex; flex-direction: column; }
+        .panel-header { padding: 15px; background: #383838; font-weight: bold; border-bottom: 1px solid #4d4d4d; display: flex; justify-content: space-between; }
+        #layer-list { flex-grow: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
         
-        /* Gaya Tombol Kontrol */
-        .controls {
-            display: grid;
-            grid-template-columns: repeat(3, 60px);
-            grid-template-rows: repeat(2, 60px);
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .btn {
-            width: 60px;
-            height: 60px;
-            background: #333;
-            border: 2px solid #00ffcc;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 10px;
-            font-weight: bold;
-            user-select: none;
-            cursor: pointer;
-        }
-        .btn:active { background: #00ffcc; color: black; }
-        .up { grid-column: 2; }
-        .left { grid-column: 1; grid-row: 2; }
-        .down { grid-column: 2; grid-row: 2; }
-        .right { grid-column: 3; grid-row: 2; }
+        .layer-item { background: #3d3d3d; padding: 12px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; border: 2px solid transparent; cursor: grab; transition: 0.2s; }
+        .layer-item.selected { border-color: var(--accent); background: #444; }
+        .layer-info { display: flex; align-items: center; justify-content: space-between; }
+        .layer-actions { display: flex; gap: 4px; }
+        
+        .btn-action { background: #555; border: none; color: white; border-radius: 4px; padding: 5px; cursor: pointer; font-size: 14px; line-height: 1; }
+        .btn-action.active-lock { background: #ff9f00; color: black; }
+        .btn-add { background: var(--accent); color: white; border: none; padding: 12px; cursor: pointer; width: 100%; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="score">Skor: <span id="scoreVal">0</span></div>
-    <canvas id="snakeGame" width="400" height="400"></canvas>
+    <div id="toolbar">
+        <input type="color" id="colorPicker" value="#000000">
+        <div class="tool active" onclick="setTool('brush', 2, this)"><span>🖊️</span>Tipis</div>
+        <div class="tool" onclick="setTool('brush', 6, this)"><span>🖌️</span>Sedang</div>
+        <div class="tool" onclick="setTool('brush', 15, this)"><span>🎨</span>Gede</div>
+        <div class="tool" onclick="setTool('brush', 40, this)"><span>🌑</span>Jumbo</div>
+        <div class="tool" onclick="setTool('eraser', 30, this)"><span>🧽</span>Eraser</div>
+        <div class="tool" onclick="setTool('bucket', 0, this)"><span>🪣</span>Bucket</div>
+    </div>
 
-    <div class="controls">
-        <div class="btn up" onclick="setDirection('UP')">▲</div>
-        <div class="btn left" onclick="setDirection('LEFT')">◀</div>
-        <div class="btn down" onclick="setDirection('DOWN')">▼</div>
-        <div class="btn right" onclick="setDirection('RIGHT')">▶</div>
+    <div id="canvas-container">
+        <div id="checkerboard"></div>
+        </div>
+
+    <div id="right-panel">
+        <div class="panel-header">LAYERS <span id="layer-count">0</span></div>
+        <div id="layer-list"></div>
+        <button class="btn-add" onclick="addLayer()">+ TAMBAH LAYER</button>
     </div>
 
     <script>
-        const canvas = document.getElementById("snakeGame");
-        const ctx = canvas.getContext("2d");
-        const scoreElement = document.getElementById("scoreVal");
+        const container = document.getElementById('canvas-container');
+        const layerListUI = document.getElementById('layer-list');
+        let layers = []; 
+        let activeLayerIndex = 0;
+        let painting = false;
+        let currentTool = 'brush';
+        let currentSize = 2;
+        let currentColor = '#000000';
 
-        const box = 20;
-        let snake = [{ x: 10 * box, y: 10 * box }];
-        let food = {
-            x: Math.floor(Math.random() * 19 + 1) * box,
-            y: Math.floor(Math.random() * 19 + 1) * box
-        };
-        let score = 0;
-        let d = "RIGHT"; // Kita buat dia langsung jalan ke kanan!
+        function addLayer() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 800; canvas.height = 600;
+            canvas.className = 'layer-canvas';
+            container.appendChild(canvas);
 
-        // Kontrol Keyboard
-        document.addEventListener("keydown", (e) => {
-            if(e.keyCode == 37 && d != "RIGHT") d = "LEFT";
-            else if(e.keyCode == 38 && d != "DOWN") d = "UP";
-            else if(e.keyCode == 39 && d != "LEFT") d = "RIGHT";
-            else if(e.keyCode == 40 && d != "UP") d = "DOWN";
-        });
+            const ctx = canvas.getContext('2d');
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
 
-        // Kontrol Tombol Layar
-        function setDirection(newDir) {
-            if(newDir == "LEFT" && d != "RIGHT") d = "LEFT";
-            if(newDir == "UP" && d != "DOWN") d = "UP";
-            if(newDir == "RIGHT" && d != "LEFT") d = "RIGHT";
-            if(newDir == "DOWN" && d != "UP") d = "DOWN";
+            const layerData = {
+                id: Date.now(),
+                canvas: canvas,
+                ctx: ctx,
+                visible: true,
+                locked: false,
+                name: "Layer " + (layers.length + 1)
+            };
+
+            // Tambah di posisi paling atas (depan)
+            layers.unshift(layerData);
+            activeLayerIndex = 0;
+            updateZIndex();
+            renderLayerList();
+
+            canvas.addEventListener('mousedown', startPos);
+            canvas.addEventListener('mousemove', draw);
+            window.addEventListener('mouseup', endPos);
         }
 
-        function collision(head, array) {
-            for(let i = 0; i < array.length; i++) {
-                if(head.x == array[i].x && head.y == array[i].y) return true;
-            }
-            return false;
+        function updateZIndex() {
+            // Balik urutan: index 0 di array adalah yang paling depan (z-index tinggi)
+            layers.forEach((layer, index) => {
+                layer.canvas.style.zIndex = layers.length - index;
+            });
         }
 
-        function draw() {
-            ctx.fillStyle = "black";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            for(let i = 0; i < snake.length; i++) {
-                ctx.fillStyle = (i == 0) ? "#00ffcc" : "#008866";
-                ctx.fillRect(snake[i].x, snake[i].y, box, box);
-            }
-
-            ctx.fillStyle = "#ff0055";
-            ctx.fillRect(food.x, food.y, box, box);
-
-            let snakeX = snake[0].x;
-            let snakeY = snake[0].y;
-
-            if( d == "LEFT") snakeX -= box;
-            if( d == "UP") snakeY -= box;
-            if( d == "RIGHT") snakeX += box;
-            if( d == "DOWN") snakeY += box;
-
-            if(snakeX == food.x && snakeY == food.y) {
-                score++;
-                scoreElement.innerHTML = score;
-                food = {
-                    x: Math.floor(Math.random() * 19 + 1) * box,
-                    y: Math.floor(Math.random() * 19 + 1) * box
+        function renderLayerList() {
+            layerListUI.innerHTML = '';
+            layers.forEach((layer, index) => {
+                const item = document.createElement('div');
+                item.className = `layer-item ${index === activeLayerIndex ? 'selected' : ''}`;
+                item.draggable = true;
+                item.onclick = () => { activeLayerIndex = index; renderLayerList(); };
+                
+                // Drag and Drop Logic
+                item.ondragstart = (e) => { e.dataTransfer.setData('text/plain', index); };
+                item.ondragover = (e) => e.preventDefault();
+                item.ondrop = (e) => {
+                    e.preventDefault();
+                    const fromIndex = e.dataTransfer.getData('text/plain');
+                    moveLayer(parseInt(fromIndex), index);
                 };
-            } else {
-                snake.pop();
-            }
 
-            let newHead = { x: snakeX, y: snakeY };
-
-            if(snakeX < 0 || snakeY < 0 || snakeX >= canvas.width || snakeY >= canvas.height || collision(newHead, snake)) {
-                clearInterval(game);
-                alert("Game Over! Skor: " + score);
-                location.reload();
-            }
-
-            snake.unshift(newHead);
+                item.innerHTML = `
+                    <div class="layer-info">
+                        <span>${layer.name}</span>
+                        <div class="layer-actions">
+                            <button class="btn-action ${layer.locked ? 'active-lock' : ''}" onclick="toggleLock(${index}, event)">${layer.locked ? '🔒' : '🔓'}</button>
+                            <button class="btn-action" onclick="toggleVis(${index}, event)">${layer.visible ? '👁️' : '❌'}</button>
+                            <button class="btn-action" style="background:#dc3545" onclick="deleteLayer(${index}, event)">🗑️</button>
+                        </div>
+                    </div>
+                `;
+                layerListUI.appendChild(item);
+            });
+            document.getElementById('layer-count').innerText = layers.length;
         }
 
-        let game = setInterval(draw, 120); // Sedikit lebih lambat agar mudah dikontrol
+        function moveLayer(from, to) {
+            const element = layers.splice(from, 1)[0];
+            layers.splice(to, 0, element);
+            activeLayerIndex = to;
+            updateZIndex();
+            renderLayerList();
+        }
+
+        function toggleVis(index, e) {
+            e.stopPropagation();
+            layers[index].visible = !layers[index].visible;
+            layers[index].canvas.style.display = layers[index].visible ? 'block' : 'none';
+            renderLayerList();
+        }
+
+        function toggleLock(index, e) {
+            e.stopPropagation();
+            layers[index].locked = !layers[index].locked;
+            renderLayerList();
+        }
+
+        function deleteLayer(index, e) {
+            e.stopPropagation();
+            if (layers.length <= 1) return;
+            container.removeChild(layers[index].canvas);
+            layers.splice(index, 1);
+            activeLayerIndex = 0;
+            updateZIndex();
+            renderLayerList();
+        }
+
+        function setTool(tool, size, el) {
+            currentTool = tool; currentSize = size;
+            document.querySelectorAll('.tool').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        document.getElementById('colorPicker').oninput = (e) => currentColor = e.target.value;
+
+        function startPos(e) {
+            if (!layers[activeLayerIndex].visible) return;
+            painting = true;
+            if (currentTool === 'bucket') fill(); else draw(e);
+        }
+
+        function endPos() {
+            painting = false;
+            if (layers[activeLayerIndex]) layers[activeLayerIndex].ctx.beginPath();
+        }
+
+        function draw(e) {
+            if (!painting || currentTool === 'bucket') return;
+            const active = layers[activeLayerIndex];
+            const rect = active.canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const ctx = active.ctx;
+            
+            ctx.globalCompositeOperation = active.locked ? 'source-atop' : (currentTool === 'eraser' ? 'destination-out' : 'source-over');
+            ctx.lineWidth = currentSize;
+            ctx.strokeStyle = currentTool === 'eraser' ? 'rgba(0,0,0,1)' : currentColor;
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        function fill() {
+            const active = layers[activeLayerIndex];
+            const ctx = active.ctx;
+            ctx.globalCompositeOperation = active.locked ? 'source-atop' : 'source-over';
+            ctx.fillStyle = currentColor;
+            ctx.fillRect(0, 0, 800, 600);
+        }
+
+        // Jalankan awal
+        addLayer();
     </script>
 </body>
 </html>
