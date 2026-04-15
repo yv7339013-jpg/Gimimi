@@ -3,199 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Lukis Pro - Alpha</title>
+    <title>Pro Paint Web App</title>
     <style>
         :root { --bg: #1a1a1a; --panel: #2d2d2d; --accent: #00a2ff; --text: #eee; }
-        body { font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; margin: 0; background: #111; color: var(--text); overflow: hidden; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #333; color: var(--text); overflow: hidden; display: flex; }
 
         /* Toolbar Kiri */
-        #toolbar { width: 90px; background: var(--panel); display: flex; flex-direction: column; align-items: center; padding: 15px 5px; gap: 10px; border-right: 1px solid #3d3d3d; z-index: 100; }
-        .tool { width: 65px; height: 55px; cursor: pointer; background: #3d3d3d; border: 1px solid #4d4d4d; border-radius: 8px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; transition: 0.2s; }
-        .tool:hover { background: #4d4d4d; }
-        .tool.active { border: 2px solid var(--accent); background: #444; box-shadow: 0 0 8px var(--accent); }
-        input[type="color"] { width: 65px; height: 45px; border: none; cursor: pointer; background: none; margin-bottom: 5px; }
+        #toolbar { width: 80px; background: var(--panel); display: flex; flex-direction: column; align-items: center; padding: 10px; gap: 10px; border-right: 1px solid #444; z-index: 100; }
+        .tool { width: 60px; height: 60px; cursor: pointer; background: #3d3d3d; border: 1px solid #555; border-radius: 10px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; transition: 0.2s; }
+        .tool.active { border: 2px solid var(--accent); background: #444; box-shadow: 0 0 10px var(--accent); }
+        input[type="color"] { width: 50px; height: 40px; border: none; cursor: pointer; background: none; }
 
-        /* Area Canvas */
-        #canvas-container { flex-grow: 1; position: relative; background: #111; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .layer-canvas { position: absolute; background: transparent; cursor: crosshair; }
-        #checkerboard { position: absolute; width: 800px; height: 600px; background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; background-color: white; z-index: -1; }
-
-        /* Panel Layer Kanan */
-        #right-panel { width: 250px; background: var(--panel); border-left: 1px solid #3d3d3d; display: flex; flex-direction: column; }
-        .panel-header { padding: 15px; background: #383838; font-weight: bold; border-bottom: 1px solid #4d4d4d; display: flex; justify-content: space-between; }
-        #layer-list { flex-grow: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        /* Area Gambar Fullscreen */
+        #canvas-wrapper { flex-grow: 1; position: relative; background: #222; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        #canvas-container { position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5); background: white; }
+        canvas { position: absolute; top: 0; left: 0; cursor: crosshair; touch-action: none; }
         
-        .layer-item { background: #3d3d3d; padding: 12px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; border: 2px solid transparent; cursor: grab; transition: 0.2s; }
+        /* Background kotak-kotak transparan */
+        #checkerboard { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(45deg, #eee 25%, transparent 25%), linear-gradient(-45deg, #eee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #eee 75%), linear-gradient(-45deg, transparent 75%, #eee 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; z-index: 0; }
+
+        /* Floating Layer Panel */
+        #layer-panel { position: fixed; right: 20px; bottom: 80px; width: 280px; background: var(--panel); border-radius: 12px; display: none; flex-direction: column; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 200; max-height: 70vh; }
+        .panel-header { padding: 15px; background: #383838; font-weight: bold; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        #layer-list { overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        
+        .layer-item { background: #3d3d3d; padding: 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; border: 2px solid transparent; cursor: pointer; }
         .layer-item.selected { border-color: var(--accent); background: #444; }
-        .layer-info { display: flex; align-items: center; justify-content: space-between; }
-        .layer-actions { display: flex; gap: 4px; }
+        .layer-actions { display: flex; gap: 5px; }
         
-        .btn-action { background: #555; border: none; color: white; border-radius: 4px; padding: 5px; cursor: pointer; font-size: 14px; line-height: 1; }
-        .btn-action.active-lock { background: #ff9f00; color: black; }
-        .btn-add { background: var(--accent); color: white; border: none; padding: 12px; cursor: pointer; width: 100%; font-weight: bold; }
+        /* Buttons */
+        .btn-round { background: #555; border: none; color: white; border-radius: 5px; padding: 5px 8px; cursor: pointer; }
+        .btn-lock.active { background: #ff9f00; color: black; }
+        .toggle-layers-btn { position: fixed; right: 20px; bottom: 20px; padding: 12px 24px; background: var(--accent); color: white; border: none; border-radius: 30px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,162,255,0.4); z-index: 201; }
     </style>
 </head>
 <body>
 
     <div id="toolbar">
         <input type="color" id="colorPicker" value="#000000">
-        <div class="tool active" onclick="setTool('brush', 2, this)"><span>🖊️</span>Tipis</div>
-        <div class="tool" onclick="setTool('brush', 6, this)"><span>🖌️</span>Sedang</div>
-        <div class="tool" onclick="setTool('brush', 15, this)"><span>🎨</span>Gede</div>
-        <div class="tool" onclick="setTool('brush', 40, this)"><span>🌑</span>Jumbo</div>
-        <div class="tool" onclick="setTool('eraser', 30, this)"><span>🧽</span>Eraser</div>
-        <div class="tool" onclick="setTool('bucket', 0, this)"><span>🪣</span>Bucket</div>
+        <div class="tool active" data-tool="brush" data-size="2"><span>🖊️</span>Tipis</div>
+        <div class="tool" data-tool="brush" data-size="8"><span>🖌️</span>Sedang</div>
+        <div class="tool" data-tool="brush" data-size="20"><span>🎨</span>Gede</div>
+        <div class="tool" data-tool="brush" data-size="60"><span>🌑</span>Jumbo</div>
+        <div class="tool" data-tool="eraser" data-size="40"><span>🧽</span>Eraser</div>
+        <div class="tool" data-tool="bucket"><span>🪣</span>Bucket</div>
     </div>
 
-    <div id="canvas-container">
-        <div id="checkerboard"></div>
-        </div>
+    <div id="canvas-wrapper">
+        <div id="canvas-container" style="width: 1200px; height: 800px;">
+            <div id="checkerboard"></div>
+            </div>
+    </div>
 
-    <div id="right-panel">
-        <div class="panel-header">LAYERS <span id="layer-count">0</span></div>
+    <button class="toggle-layers-btn" onclick="toggleLayerPanel()">📑 MANAGE LAYERS</button>
+
+    <div id="layer-panel">
+        <div class="panel-header">
+            LAYERS
+            <button class="btn-round" style="background:var(--accent)" onclick="addLayer()">+ Add</button>
+        </div>
         <div id="layer-list"></div>
-        <button class="btn-add" onclick="addLayer()">+ TAMBAH LAYER</button>
     </div>
 
     <script>
         const container = document.getElementById('canvas-container');
         const layerListUI = document.getElementById('layer-list');
-        let layers = []; 
-        let activeLayerIndex = 0;
-        let painting = false;
+        let layers = [];
+        let activeIndex = 0;
+        let isDrawing = false;
         let currentTool = 'brush';
         let currentSize = 2;
         let currentColor = '#000000';
 
+        // Inisialisasi Tool
+        document.querySelectorAll('.tool').forEach(t => {
+            t.onclick = () => {
+                document.querySelectorAll('.tool').forEach(x => x.classList.remove('active'));
+                t.classList.add('active');
+                currentTool = t.dataset.tool;
+                currentSize = parseInt(t.dataset.size || 0);
+            };
+        });
+
+        document.getElementById('colorPicker').oninput = (e) => currentColor = e.target.value;
+
         function addLayer() {
             const canvas = document.createElement('canvas');
-            canvas.width = 800; canvas.height = 600;
-            canvas.className = 'layer-canvas';
+            canvas.width = 1200;
+            canvas.height = 800;
             container.appendChild(canvas);
 
             const ctx = canvas.getContext('2d');
-            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
 
-            const layerData = {
-                id: Date.now(),
-                canvas: canvas,
-                ctx: ctx,
-                visible: true,
-                locked: false,
+            const layerObj = {
+                canvas, ctx, 
+                visible: true, 
+                locked: false, 
                 name: "Layer " + (layers.length + 1)
             };
 
-            // Tambah di posisi paling atas (depan)
-            layers.unshift(layerData);
-            activeLayerIndex = 0;
-            updateZIndex();
-            renderLayerList();
-
-            canvas.addEventListener('mousedown', startPos);
-            canvas.addEventListener('mousemove', draw);
-            window.addEventListener('mouseup', endPos);
+            layers.unshift(layerObj); // Tambah ke depan (atas)
+            activeIndex = 0;
+            refreshLayers();
         }
 
-        function updateZIndex() {
-            // Balik urutan: index 0 di array adalah yang paling depan (z-index tinggi)
-            layers.forEach((layer, index) => {
-                layer.canvas.style.zIndex = layers.length - index;
-            });
-        }
-
-        function renderLayerList() {
+        function refreshLayers() {
             layerListUI.innerHTML = '';
-            layers.forEach((layer, index) => {
+            layers.forEach((layer, i) => {
+                layer.canvas.style.zIndex = layers.length - i;
+                layer.canvas.style.display = layer.visible ? 'block' : 'none';
+
                 const item = document.createElement('div');
-                item.className = `layer-item ${index === activeLayerIndex ? 'selected' : ''}`;
-                item.draggable = true;
-                item.onclick = () => { activeLayerIndex = index; renderLayerList(); };
-                
-                // Drag and Drop Logic
-                item.ondragstart = (e) => { e.dataTransfer.setData('text/plain', index); };
-                item.ondragover = (e) => e.preventDefault();
-                item.ondrop = (e) => {
-                    e.preventDefault();
-                    const fromIndex = e.dataTransfer.getData('text/plain');
-                    moveLayer(parseInt(fromIndex), index);
-                };
+                item.className = `layer-item ${i === activeIndex ? 'selected' : ''}`;
+                item.onclick = () => { activeIndex = i; refreshLayers(); };
 
                 item.innerHTML = `
-                    <div class="layer-info">
-                        <span>${layer.name}</span>
-                        <div class="layer-actions">
-                            <button class="btn-action ${layer.locked ? 'active-lock' : ''}" onclick="toggleLock(${index}, event)">${layer.locked ? '🔒' : '🔓'}</button>
-                            <button class="btn-action" onclick="toggleVis(${index}, event)">${layer.visible ? '👁️' : '❌'}</button>
-                            <button class="btn-action" style="background:#dc3545" onclick="deleteLayer(${index}, event)">🗑️</button>
-                        </div>
+                    <span>${layer.name}</span>
+                    <div class="layer-actions">
+                        <button class="btn-round btn-lock ${layer.locked ? 'active' : ''}" onclick="event.stopPropagation(); toggleLock(${i})">🔒</button>
+                        <button class="btn-round" onclick="event.stopPropagation(); toggleVis(${i})">${layer.visible ? '👁️' : '❌'}</button>
+                        <button class="btn-round" style="background:#dc3545" onclick="event.stopPropagation(); deleteLayer(${i})">🗑️</button>
                     </div>
                 `;
                 layerListUI.appendChild(item);
             });
-            document.getElementById('layer-count').innerText = layers.length;
         }
 
-        function moveLayer(from, to) {
-            const element = layers.splice(from, 1)[0];
-            layers.splice(to, 0, element);
-            activeLayerIndex = to;
-            updateZIndex();
-            renderLayerList();
+        function toggleLayerPanel() {
+            const p = document.getElementById('layer-panel');
+            p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
         }
 
-        function toggleVis(index, e) {
-            e.stopPropagation();
-            layers[index].visible = !layers[index].visible;
-            layers[index].canvas.style.display = layers[index].visible ? 'block' : 'none';
-            renderLayerList();
-        }
-
-        function toggleLock(index, e) {
-            e.stopPropagation();
-            layers[index].locked = !layers[index].locked;
-            renderLayerList();
-        }
-
-        function deleteLayer(index, e) {
-            e.stopPropagation();
+        function toggleVis(i) { layers[i].visible = !layers[i].visible; refreshLayers(); }
+        function toggleLock(i) { layers[i].locked = !layers[i].locked; refreshLayers(); }
+        function deleteLayer(i) {
             if (layers.length <= 1) return;
-            container.removeChild(layers[index].canvas);
-            layers.splice(index, 1);
-            activeLayerIndex = 0;
-            updateZIndex();
-            renderLayerList();
+            container.removeChild(layers[i].canvas);
+            layers.splice(i, 1);
+            activeIndex = 0;
+            refreshLayers();
         }
 
-        function setTool(tool, size, el) {
-            currentTool = tool; currentSize = size;
-            document.querySelectorAll('.tool').forEach(t => t.classList.remove('active'));
-            el.classList.add('active');
+        // Logic Menggambar (Perbaikan: Mouse & Touch)
+        function getCoords(e) {
+            const rect = container.getBoundingClientRect();
+            return {
+                x: (e.clientX || e.touches[0].clientX) - rect.left,
+                y: (e.clientY || e.touches[0].clientY) - rect.top
+            };
         }
 
-        document.getElementById('colorPicker').oninput = (e) => currentColor = e.target.value;
+        function startDrawing(e) {
+            if (layers[activeIndex].locked || !layers[activeIndex].visible) return;
+            isDrawing = true;
+            const {x, y} = getCoords(e);
+            const ctx = layers[activeIndex].ctx;
+            
+            if(currentTool === 'bucket') {
+                fill(ctx, layers[activeIndex].locked);
+                return;
+            }
 
-        function startPos(e) {
-            if (!layers[activeLayerIndex].visible) return;
-            painting = true;
-            if (currentTool === 'bucket') fill(); else draw(e);
-        }
-
-        function endPos() {
-            painting = false;
-            if (layers[activeLayerIndex]) layers[activeLayerIndex].ctx.beginPath();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            draw(e);
         }
 
         function draw(e) {
-            if (!painting || currentTool === 'bucket') return;
-            const active = layers[activeLayerIndex];
-            const rect = active.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            if (!isDrawing || currentTool === 'bucket') return;
+            const {x, y} = getCoords(e);
+            const active = layers[activeIndex];
             const ctx = active.ctx;
-            
+
             ctx.globalCompositeOperation = active.locked ? 'source-atop' : (currentTool === 'eraser' ? 'destination-out' : 'source-over');
-            ctx.lineWidth = currentSize;
             ctx.strokeStyle = currentTool === 'eraser' ? 'rgba(0,0,0,1)' : currentColor;
+            ctx.lineWidth = currentSize;
 
             ctx.lineTo(x, y);
             ctx.stroke();
@@ -203,15 +188,27 @@
             ctx.moveTo(x, y);
         }
 
-        function fill() {
-            const active = layers[activeLayerIndex];
-            const ctx = active.ctx;
-            ctx.globalCompositeOperation = active.locked ? 'source-atop' : 'source-over';
-            ctx.fillStyle = currentColor;
-            ctx.fillRect(0, 0, 800, 600);
+        function stopDrawing() {
+            isDrawing = false;
         }
 
-        // Jalankan awal
+        function fill(ctx, locked) {
+            ctx.globalCompositeOperation = locked ? 'source-atop' : 'source-over';
+            ctx.fillStyle = currentColor;
+            ctx.fillRect(0, 0, 1200, 800);
+        }
+
+        // Event Listeners ke Container (Supaya semua layer kena)
+        container.addEventListener('mousedown', startDrawing);
+        window.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', stopDrawing);
+
+        // Support HP/Tablet
+        container.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); }, {passive: false});
+        container.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, {passive: false});
+        container.addEventListener('touchend', stopDrawing);
+
+        // Start
         addLayer();
     </script>
 </body>
